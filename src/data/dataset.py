@@ -10,8 +10,8 @@ def generate_dataset(
     n_peaks: int = 4,
     seed: int | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """(G_noisy, A_density) を返す。G: (n_samples, 512), A_density: (n_samples, 1024).
-    A_density は ∫A dω = 1 を満たすスペクトル密度（正規化済み）。
+    """(G_noisy, A_prob) を返す。G: (n_samples, 512), A_prob: (n_samples, 1024).
+    A_prob は Σ A(ωⱼ)Δω = 1 の確率（論文の Δω 吸収形式）。物理スペクトルは A(ω) = A_prob/Δω。
     """
     _, _, d_omega = get_tau_omega()
     rng = np.random.default_rng(seed)
@@ -21,7 +21,6 @@ def generate_dataset(
         G = spectrum_to_G(A_prob)
         noise = rng.normal(0, sigma, size=G.shape)
         G_noisy = G + noise
-        A_density = A_prob / d_omega  # ∫A_density dω = 1
-        A_list.append(A_density)
+        A_list.append(A_prob)
         G_list.append(G_noisy)
     return np.array(G_list, dtype=np.float32), np.array(A_list, dtype=np.float32)
