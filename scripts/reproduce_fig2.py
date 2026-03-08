@@ -73,13 +73,12 @@ def main():
     ax.set_ylabel("Relative loss")
     ax.legend()
     ax.set_title("(a) Relative losses")
-    # 図2(b): スペクトル密度 A(ω)/Δω をプロット（∫A dω = 1 になる正規化）
+    # 図2(b): A_track と checkpoint_preds は既に密度形式（∫A dω = 1）
     ax = axes[1]
-    _, omega, d_omega = get_tau_omega()
-    A_track_density = A_track / d_omega  # 確率→密度: ∫A dω = Σ(A/Δω)·Δω = 1
-    ax.plot(omega, A_track_density, "k-", label="True", lw=2)
+    _, omega, _ = get_tau_omega()
+    ax.plot(omega, A_track, "k-", label="True", lw=2)
     for ep, pred in sorted(cb.checkpoint_preds.items()):
-        ax.plot(omega, pred / d_omega, "--", alpha=0.7, label=f"Epoch {ep}")
+        ax.plot(omega, pred, "--", alpha=0.7, label=f"Epoch {ep}")
     ax.set_xlabel(r"$\omega$")
     ax.set_ylabel(r"$A(\omega)$")
     ax.legend()
