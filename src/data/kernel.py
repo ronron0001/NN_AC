@@ -9,10 +9,11 @@ BETA = 16.0
 
 
 def get_tau_omega():
-    """τ, ω の離散グリッドを返す。d_omega は可視化等に使用。"""
+    """τ, ω の離散グリッドを返す。d_omega は設計ドキュメント準拠で Δω = 30/1024。"""
     tau = np.linspace(0, TAU_MAX, N_TAU, endpoint=False)
     omega = np.linspace(OMEGA_MIN, OMEGA_MAX, N_OMEGA)
-    d_omega = (OMEGA_MAX - OMEGA_MIN) / (N_OMEGA - 1)
+    # 設計ドキュメント: Δω = 30/1024（セル幅）。∫A dω = Σ A_j Δω = 1 の離散化に使用
+    d_omega = (OMEGA_MAX - OMEGA_MIN) / N_OMEGA
     return tau, omega, d_omega
 
 

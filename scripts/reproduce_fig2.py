@@ -33,17 +33,15 @@ def main():
     n_train, n_test = 1000, 500
     sigma = 1e-3
     _, _, d_omega = get_tau_omega()
-    G_train, A_train_density = generate_dataset(n_train, sigma, seed=0)
-    G_test, A_test_density = generate_dataset(n_test, sigma, seed=1)
-    # 学習用: モデルは確率 (sum=1) を出力するので、ターゲットも確率に
-    A_train_prob = A_train_density * d_omega
-    # 図2(b) 用の固定サンプル（密度のまま）
+    G_train, A_train_prob = generate_dataset(n_train, sigma, seed=0)
+    G_test, A_test_prob = generate_dataset(n_test, sigma, seed=1)
+    # 図2(b) 用の固定サンプル（A_prob のまま）
     G_track = G_test[:1]
-    A_track = A_test_density[0]
+    A_track = A_test_prob[0]
     # チェックポイント: 相対KLDが落ちるポイントを狙う
     checkpoint_epochs = [1, 5, 10, 20, 40, 80]
     cb = Fig2Callback(
-        G_test, A_test_density, G_track, A_track, d_omega, checkpoint_epochs
+        G_test, A_test_prob, G_track, A_track, d_omega, checkpoint_epochs
     )
     model = build_nnac()
     model.compile(optimizer="adam", loss="kl_divergence")
@@ -73,13 +71,14 @@ def main():
     ax.set_ylabel("Relative loss")
     ax.legend()
     ax.set_title("(a) Relative losses")
-    # 図2(b): スペクトル密度 A(ω)/Δω をプロット（∫A dω = 1 になる正規化）
+    # 図2(b): 物理的スペクトル A(ω)（∫A dω=1）でプロット
+    # 論文: A(ω) = A_prob/Δω。データセットは A_prob を返すので /d_omega で変換。
     ax = axes[1]
-    _, omega, d_omega = get_tau_omega()
-    A_track_density = A_track / d_omega  # 確率→密度: ∫A dω = Σ(A/Δω)·Δω = 1
-    ax.plot(omega, A_track_density, "k-", label="True", lw=2)
-    for ep, pred in sorted(cb.checkpoint_preds.items()):
-        ax.plot(omega, pred / d_omega, "--", alpha=0.7, label=f"Epoch {ep}")
+    _, omega, _ = get_tau_omega()
+    A_plot = A_track / d_omega  # A_prob → 物理スペクトル A(ω)
+    ax.plot(omega, A_plot, "k-", label="True", lw=2)
+    for ep, pred_density in sorted(cb.checkpoint_preds.items()):
+        ax.plot(omega, pred_density, "--", alpha=0.7, label=f"Epoch {ep}")
     ax.set_xlabel(r"$\omega$")
     ax.set_ylabel(r"$A(\omega)$")
     ax.legend()
@@ -89,6 +88,11 @@ def main():
     plt.savefig("output/fig2_training_process.png", dpi=150)
     plt.close()
     print("Saved output/fig2_training_process.png")
+    # 積分検証: A_prob は Σ=1、pred_density は ∫A dω = Σ A_j Δω = 1
+    integral_true = np.sum(A_track)  # A_prob: Σ = 1
+    last_ep = max(cb.checkpoint_preds) if cb.checkpoint_preds else 0
+    integral_pred = np.sum(cb.checkpoint_preds[last_ep]) * d_omega if last_ep else 0
+    print(f"Integral check: True ΣA_prob = {integral_true:.6f}, Pred ∫A dω = {integral_pred:.6f}")
 
 
 if __name__ == "__main__":
